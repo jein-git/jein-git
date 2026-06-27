@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Base HTML font size - controlled by AccessibilityContext */
+  html {
+    font-size: 16px;
+    font-family: 'Pretendard', system-ui, sans-serif;
+    color: #1A1A1A;
+    background: #FFFBF5;
+  }
+
+  /* Font scale overrides via data attribute */
+  html[data-font-scale="normal"] {
+    font-size: 16px;
+  }
+  html[data-font-scale="large"] {
+    font-size: 18px;
+  }
+  html[data-font-scale="xlarge"] {
+    font-size: 20px;
+  }
+
+  body {
+    font-size: 1.1875rem; /* 19px at 16px base */
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    background-color: #FFFBF5;
+  }
+
+  button, [role="button"], a.btn {
+    min-height: 56px;
+    min-width: 56px;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Accessibility: High Contrast */
+  html.high-contrast {
+    --tw-bg-opacity: 1;
+  }
+  html.high-contrast body {
+    background-color: #FFFFFF;
+  }
+  html.high-contrast .text-ink {
+    color: #000000 !important;
+  }
+  html.high-contrast .text-ink-muted {
+    color: #1A1A1A !important;
+  }
+  html.high-contrast .text-ink-subtle {
+    color: #333333 !important;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary text-white font-medium text-body-lg
+           rounded-lg px-6 py-4 min-h-touch-lg w-full
+           active:scale-95 transition-transform duration-150
+           flex items-center justify-center;
+  }
+  .btn-secondary {
+    @apply bg-white text-primary-dark font-medium text-body-lg
+           rounded-lg px-6 py-4 min-h-touch-lg w-full
+           border-2 border-primary active:scale-95 transition-transform duration-150
+           flex items-center justify-center;
+  }
+  .btn-danger {
+    @apply bg-accent text-white font-medium text-h3
+           rounded-lg px-6 py-4 min-h-touch-xl w-full
+           active:scale-95 transition-transform duration-150
+           flex items-center justify-center;
+  }
+  .card {
+    @apply bg-surface-card border border-line rounded-lg p-6;
+  }
+  .input-field {
+    @apply w-full min-h-touch-lg px-4 py-3 text-body-lg border-2 border-line
+           rounded-lg bg-white focus:outline-none focus:border-primary
+           focus:ring-2 focus:ring-primary-light transition-colors;
+  }
+  .label-text {
+    @apply text-body-lg font-medium text-ink mb-3 block;
+  }
+  .section-title {
+    @apply text-h2 font-bold text-ink mb-4;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+
+  .text-balance-positive {
+    @apply text-success;
+  }
+
+  .text-balance-negative {
+    @apply text-primary-dark;
+  }
+}
