@@ -10,7 +10,7 @@ export function GoogleLoginButton() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://ylbfylxewlhdyprltnfa.supabase.co/auth/v1/callback',
+        redirectTo: 'https://senior-care-time-ban-13bi.bolt.host',
       },
     });
     setLoading(false);
