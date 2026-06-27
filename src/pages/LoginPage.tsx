@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, mapAuthError } from '../context/AuthContext';
 import { Clock, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { GoogleLoginButton } from '../components/ui/GoogleLoginButton';
 
 export function LoginPage() {
   const { signIn } = useAuth();
@@ -112,6 +113,16 @@ export function LoginPage() {
             )}
           </button>
         </form>
+
+        {/* 구분선 */}
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-[#e0e0e0]" />
+          <span className="text-sm text-ink-muted">또는</span>
+          <div className="flex-1 h-px bg-[#e0e0e0]" />
+        </div>
+
+        {/* 구글 로그인 버튼 */}
+        <GoogleLoginButton />
 
         {/* 회원가입 링크 */}
         <div className="mt-6 text-center">
