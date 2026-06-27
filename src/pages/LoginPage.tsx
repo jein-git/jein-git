@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, mapAuthError } from '../context/AuthContext';
 import { Clock, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { GoogleLoginButton } from '../components/ui/GoogleLoginButton';
+import { supabase } from '../lib/supabase';
 
 export function LoginPage() {
   const { signIn } = useAuth();
@@ -11,6 +12,22 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // OAuth 콜백 파라미터 확인 (디버깅)
+    const hash = window.location.hash;
+    const search = window.location.search;
+    if (hash.includes('access_token') || search.includes('code=')) {
+      console.log('[LoginPage] OAuth 파라미터 감지:', { hash, search });
+    }
+
+    // 세션이 이미 있으면 홈으로 이동
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate('/', { replace: true });
+      }
+    });
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
