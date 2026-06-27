@@ -96,16 +96,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // onAuthStateChange만으로 세션을 관리한다.
-    // Supabase JS v2는 구독 즉시 INITIAL_SESSION 이벤트를 발행하므로
-    // 별도 getSession() 호출이 불필요하다.
-    //
-    // 주의: onAuthStateChange 콜백 내에서 다른 Supabase 메서드를
-    // 직접 await하면 auth lock 교착상태가 발생할 수 있다.
-    // fetchProfile은 setTimeout으로 defer해 교착상태를 방지한다.
+    // 1단계: 초기 세션을 먼저 확인 (OAuth 콜백 포함)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const currentUser = session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        setTimeout(() => fetchProfile(currentUser.id), 0);
+      }
+      setLoading(false);
+    });
+
+    // 2단계: 이후 세션 변화 감지 (로그인·로그아웃·토큰 갱신)
+    // INITIAL_SESSION은 getSession()으로 이미 처리했으므로 건너뜀
+    // 주의: 콜백 내에서 Supabase 메서드를 직접 await하면 auth lock 교착상태 발생 가능
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return;
+
       const currentUser = session?.user ?? null;
       setUser(currentUser);
 
@@ -115,22 +123,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // setLoading을 먼저 해제한 뒤 프로필을 비동기로 가져온다
       setLoading(false);
-
-      // auth lock 교착상태 방지: setTimeout으로 다음 이벤트 루프에서 실행
-      setTimeout(() => {
-        fetchProfile(currentUser.id);
-      }, 0);
+      setTimeout(() => fetchProfile(currentUser.id), 0);
     });
 
-    // 5초 안에 이벤트가 오지 않으면 강제로 로딩 해제 (안전망)
-    const fallbackTimer = setTimeout(() => setLoading(false), 5000);
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(fallbackTimer);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   const signUp = async (
