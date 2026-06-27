@@ -23,10 +23,21 @@ export function LoginPage() {
 
     // 세션이 이미 있으면 홈으로 이동
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('[LoginPage] getSession 결과:', session);
       if (session) {
         navigate('/', { replace: true });
       }
     });
+
+    // 세션 변화 실시간 감지 (OAuth 콜백 포함)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[LoginPage] onAuthStateChange:', event, session);
+      if (session) {
+        navigate('/', { replace: true });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
