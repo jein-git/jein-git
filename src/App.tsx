@@ -26,6 +26,7 @@ import { CommunityDetailPage } from './pages/CommunityDetailPage';
 import { CommunityWritePage } from './pages/CommunityWritePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { ProfileSetupPage } from './pages/ProfileSetupPage';
+import { TermsAgreementPage } from './pages/TermsAgreementPage';
 
 function LoadingScreen() {
   return (
@@ -51,6 +52,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/terms-agreement" element={<TermsAgreementPage />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );

@@ -14,7 +14,10 @@ type AuthContextType = {
     password: string,
     name: string,
     phone?: string,
-    address?: string
+    address?: string,
+    termsAgreed?: boolean,
+    privacyAgreed?: boolean,
+    marketingAgreed?: boolean,
   ) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -135,8 +138,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string,
     name: string,
     phone?: string,
-    address?: string
+    address?: string,
+    termsAgreed?: boolean,
+    privacyAgreed?: boolean,
+    marketingAgreed?: boolean,
   ) => {
+    // 필수 약관 미동의 시 저장 차단
+    if (!termsAgreed || !privacyAgreed) {
+      return { error: new Error('필수 약관에 동의해야 회원가입을 진행할 수 있습니다.') };
+    }
+
     try {
       // name을 메타데이터로 전달 → DB 트리거가 profiles 행 자동 생성 시 사용
       const { data, error } = await supabase.auth.signUp({
@@ -148,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
-        // 트리거가 생성한 프로필 행에 phone/address 추가
+        // 트리거가 생성한 프로필 행에 추가 정보 업데이트
         await supabase.from('profiles').upsert(
           {
             id: data.user.id,
@@ -156,6 +167,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             phone: phone || null,
             address: address || null,
             time_balance: 0,
+            terms_agreed: true,
+            privacy_agreed: true,
+            marketing_agreed: marketingAgreed ?? false,
+            agreed_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'id' }

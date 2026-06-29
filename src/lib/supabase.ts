@@ -24,6 +24,10 @@ export type Profile = {
   time_balance: number;
   intro: string;
   role?: string; // 'user'(기본) 또는 'admin'
+  terms_agreed?: boolean;
+  privacy_agreed?: boolean;
+  marketing_agreed?: boolean;
+  agreed_at?: string;
   created_at: string;
   updated_at: string;
 };

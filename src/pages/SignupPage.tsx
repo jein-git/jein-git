@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth, mapAuthError } from '../context/AuthContext';
 import {
   Clock,
   User,
@@ -9,12 +8,10 @@ import {
   Phone,
   MapPin,
   AlertCircle,
-  Loader2,
   ChevronLeft,
 } from 'lucide-react';
 
 export function SignupPage() {
-  const { signUp } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
@@ -24,7 +21,6 @@ export function SignupPage() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
   const validate = (): string | null => {
     if (!name.trim()) return '이름을 입력해주세요.';
@@ -35,7 +31,7 @@ export function SignupPage() {
     return null;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -45,22 +41,16 @@ export function SignupPage() {
       return;
     }
 
-    setLoading(true);
-    const { error: authError } = await signUp(
-      email.trim(),
-      password,
-      name.trim(),
-      phone.trim() || undefined,
-      address.trim() || undefined
-    );
-    setLoading(false);
-
-    if (authError) {
-      setError(mapAuthError(authError.message));
-      return;
-    }
-
-    navigate('/');
+    // 약관 동의 페이지로 폼 데이터 전달
+    navigate('/terms-agreement', {
+      state: {
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        phone: phone.trim(),
+        address: address.trim(),
+      },
+    });
   };
 
   return (
@@ -213,20 +203,12 @@ export function SignupPage() {
             </div>
           </div>
 
-          {/* 가입 버튼 */}
+          {/* 다음 단계 버튼 */}
           <button
             type="submit"
-            disabled={loading}
-            className="btn-primary mt-2 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="btn-primary mt-2 flex items-center justify-center gap-2"
           >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                가입 중...
-              </>
-            ) : (
-              '가입 완료'
-            )}
+            다음 단계
           </button>
         </form>
 
