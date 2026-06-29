@@ -70,7 +70,7 @@ const TERMS_CONTENT = {
 type ModalKey = keyof typeof TERMS_CONTENT;
 
 export function TermsAgreementPage() {
-  const { signUp } = useAuth();
+  const { user, signUp, updateProfile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const signupData = location.state as SignupState | null;
@@ -82,8 +82,8 @@ export function TermsAgreementPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 폼 데이터 없이 직접 접근한 경우 회원가입으로 돌려보냄
-  if (!signupData) {
+  // 비로그인 + 폼 데이터 없음: 회원가입으로 (구글 OAuth 로그인 유저는 해당 없음)
+  if (!user && !signupData) {
     navigate('/signup', { replace: true });
     return null;
   }
@@ -106,24 +106,41 @@ export function TermsAgreementPage() {
     }
 
     setLoading(true);
-    const { error: authError } = await signUp(
-      signupData.email,
-      signupData.password,
-      signupData.name,
-      signupData.phone || undefined,
-      signupData.address || undefined,
-      true,
-      true,
-      marketingAgreed,
-    );
-    setLoading(false);
 
-    if (authError) {
-      setError(mapAuthError(authError.message));
-      return;
+    if (user) {
+      // 구글 OAuth 등 이미 로그인된 유저: 약관만 프로필에 저장
+      const { error: updateError } = await updateProfile({
+        terms_agreed: true,
+        privacy_agreed: true,
+        marketing_agreed: marketingAgreed,
+        agreed_at: new Date().toISOString(),
+      });
+      setLoading(false);
+      if (updateError) {
+        setError('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+        return;
+      }
+      // AppRoutes가 terms 게이트 해제 후 phone/address 유무에 따라 자동 분기
+      navigate('/');
+    } else {
+      // 이메일 회원가입 플로우
+      const { error: authError } = await signUp(
+        signupData!.email,
+        signupData!.password,
+        signupData!.name,
+        signupData!.phone || undefined,
+        signupData!.address || undefined,
+        true,
+        true,
+        marketingAgreed,
+      );
+      setLoading(false);
+      if (authError) {
+        setError(mapAuthError(authError.message));
+        return;
+      }
+      navigate('/');
     }
-
-    navigate('/');
   };
 
   return (

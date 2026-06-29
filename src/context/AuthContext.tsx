@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // role 컬럼을 명시적으로 포함해 조회
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, phone, address, profile_image_url, time_balance, intro, role, created_at, updated_at')
+        .select('id, name, phone, address, profile_image_url, time_balance, intro, role, terms_agreed, privacy_agreed, marketing_agreed, agreed_at, created_at, updated_at')
         .eq('id', userId)
         .maybeSingle();
 

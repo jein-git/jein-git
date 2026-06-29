@@ -58,6 +58,16 @@ function AppRoutes() {
     );
   }
 
+  // 로그인했지만 약관 미동의 시 약관 동의 강제 (구글 OAuth 신규 가입 등)
+  if (profile && (!profile.terms_agreed || !profile.privacy_agreed)) {
+    return (
+      <Routes>
+        <Route path="/terms-agreement" element={<TermsAgreementPage />} />
+        <Route path="*" element={<Navigate to="/terms-agreement" replace />} />
+      </Routes>
+    );
+  }
+
   // 로그인했지만 phone 또는 address 미입력 시 프로필 설정 강제
   if (profile && (!profile.phone || !profile.address)) {
     return (
@@ -74,6 +84,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/signup" element={<Navigate to="/" replace />} />
+        <Route path="/terms-agreement" element={<Navigate to="/" replace />} />
         <Route path="/profile-setup" element={<Navigate to="/" replace />} />
 
         <Route
