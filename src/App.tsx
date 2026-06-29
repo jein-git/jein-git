@@ -59,7 +59,9 @@ function AppRoutes() {
   }
 
   // 로그인했지만 약관 미동의 시 약관 동의 강제 (구글 OAuth 신규 가입 등)
-  if (profile && (!profile.terms_agreed || !profile.privacy_agreed)) {
+  // terms_agreed === false: DB에 컬럼이 있고 명시적으로 미동의인 경우만 게이트
+  // undefined (컬럼 미존재) 는 false가 아니므로 게이트 건너뜀
+  if (profile && (profile.terms_agreed === false || profile.privacy_agreed === false)) {
     return (
       <Routes>
         <Route path="/terms-agreement" element={<TermsAgreementPage />} />
