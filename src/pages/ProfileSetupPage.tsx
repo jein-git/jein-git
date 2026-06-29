@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Clock, User, Phone, MapPin, AlertCircle, Loader2 } from 'lucide-react';
+import { Clock, User, Phone, MapPin, ChevronDown, AlertCircle, Loader2 } from 'lucide-react';
+
+const NOWON_DONGS = [
+  '월계1동', '월계2동', '월계3동',
+  '공릉1동', '공릉2동',
+  '하계1동', '하계2동',
+  '중계본동', '중계1동', '중계2·3동', '중계4동',
+  '상계1동', '상계2동', '상계3·4동', '상계5동',
+  '상계6·7동', '상계8동', '상계9동', '상계10동',
+];
 
 export function ProfileSetupPage() {
   const { profile, updateProfile } = useAuth();
@@ -9,7 +18,7 @@ export function ProfileSetupPage() {
 
   const [name, setName] = useState(profile?.name || '');
   const [phone, setPhone] = useState(profile?.phone || '');
-  const [address, setAddress] = useState(profile?.address || '');
+  const [dong, setDong] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,8 +34,8 @@ export function ProfileSetupPage() {
       setError('전화번호를 입력해주세요.');
       return;
     }
-    if (!address.trim()) {
-      setError('주소를 입력해주세요.');
+    if (!dong) {
+      setError('동을 선택해주세요.');
       return;
     }
 
@@ -34,7 +43,7 @@ export function ProfileSetupPage() {
     const { error: updateError } = await updateProfile({
       name: name.trim(),
       phone: phone.trim(),
-      address: address.trim(),
+      address: `노원구 ${dong}`,
     });
     setSaving(false);
 
@@ -106,18 +115,33 @@ export function ProfileSetupPage() {
           </div>
 
           <div>
-            <label className="label-text">
-              주소 <span className="text-accent">*</span>
+            <label className="text-h3 font-bold text-ink mb-3 block">
+              거주 동 <span className="text-accent">*</span>
             </label>
-            <div className="relative">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-muted" />
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="예: 서울시 마포구 망원동"
-                className="input-field pl-12"
-              />
+            <div className="flex items-center gap-3">
+              {/* 노원구 고정 텍스트 */}
+              <div className="flex items-center gap-2 bg-primary-light border-2 border-primary rounded-lg px-4 min-h-[72px] whitespace-nowrap shrink-0">
+                <MapPin className="w-6 h-6 text-primary shrink-0" />
+                <span className="text-h3 font-bold text-primary-dark">노원구</span>
+              </div>
+
+              {/* 동 드롭다운 */}
+              <div className="relative flex-1">
+                <select
+                  value={dong}
+                  onChange={(e) => setDong(e.target.value)}
+                  className="w-full min-h-[72px] px-4 pr-12 text-h3 font-medium
+                             border-2 border-line rounded-lg bg-white
+                             focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-light
+                             transition-colors appearance-none text-ink"
+                >
+                  <option value="">동 선택</option>
+                  {NOWON_DONGS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-ink-muted pointer-events-none" />
+              </div>
             </div>
           </div>
 
