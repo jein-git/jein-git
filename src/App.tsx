@@ -39,10 +39,11 @@ function LoadingScreen() {
 function AppRoutes() {
   const { user, profile, profileLoading, profileError, loading } = useAuth();
 
-  if (loading || profileLoading) return <LoadingScreen />;
-
-  // user가 세팅된 직후 profileLoading이 시작되기 전 짧은 순간 처리
-  if (user && !profile && !profileError) return <LoadingScreen />;
+  // 인증·프로필 중 하나라도 미확정이면 스피너 유지
+  // (loading→false 직후 profileLoading이 시작되기 전 한 프레임 빈틈 방지)
+  if (loading || profileLoading || (!!user && !profile && !profileError)) {
+    return <LoadingScreen />;
+  }
 
   // 비로그인: 로그인/회원가입 화면만 접근 가능
   if (!user) {
