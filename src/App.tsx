@@ -25,6 +25,7 @@ import { CommunityPage } from './pages/CommunityPage';
 import { CommunityDetailPage } from './pages/CommunityDetailPage';
 import { CommunityWritePage } from './pages/CommunityWritePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { ProfileSetupPage } from './pages/ProfileSetupPage';
 
 function LoadingScreen() {
   return (
@@ -36,9 +37,12 @@ function LoadingScreen() {
 }
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { user, profile, profileLoading, profileError, loading } = useAuth();
 
-  if (loading) return <LoadingScreen />;
+  if (loading || profileLoading) return <LoadingScreen />;
+
+  // user가 세팅된 직후 profileLoading이 시작되기 전 짧은 순간 처리
+  if (user && !profile && !profileError) return <LoadingScreen />;
 
   // 비로그인: 로그인/회원가입 화면만 접근 가능
   if (!user) {
@@ -51,12 +55,23 @@ function AppRoutes() {
     );
   }
 
+  // 로그인했지만 phone 또는 address 미입력 시 프로필 설정 강제
+  if (profile && (!profile.phone || !profile.address)) {
+    return (
+      <Routes>
+        <Route path="/profile-setup" element={<ProfileSetupPage />} />
+        <Route path="*" element={<Navigate to="/profile-setup" replace />} />
+      </Routes>
+    );
+  }
+
   // 로그인 상태: UserProvider는 mock 데이터(거래내역·자산)를 위해 유지
   return (
     <UserProvider>
       <Routes>
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/signup" element={<Navigate to="/" replace />} />
+        <Route path="/profile-setup" element={<Navigate to="/" replace />} />
 
         <Route
           path="/"
