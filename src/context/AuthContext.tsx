@@ -175,6 +175,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
           { onConflict: 'id' }
         );
+
+        // upsert 완료 후 프로필을 명시적으로 재조회:
+        // onAuthStateChange의 setTimeout(0) fetchProfile이 upsert보다 먼저 실행되는
+        // 경쟁 상태를 방지해 phone/address가 있음에도 /profile-setup으로 이동하는 버그를 막음
+        await fetchProfile(data.user.id);
       }
 
       return { error: null };

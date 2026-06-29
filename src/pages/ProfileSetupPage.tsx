@@ -2,15 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Clock, User, Phone, MapPin, ChevronDown, AlertCircle, Loader2 } from 'lucide-react';
-
-const NOWON_DONGS = [
-  '월계1동', '월계2동', '월계3동',
-  '공릉1동', '공릉2동',
-  '하계1동', '하계2동',
-  '중계본동', '중계1동', '중계2·3동', '중계4동',
-  '상계1동', '상계2동', '상계3·4동', '상계5동',
-  '상계6·7동', '상계8동', '상계9동', '상계10동',
-];
+import { NOWON_DONGS } from '../data/nowonDongs';
 
 export function ProfileSetupPage() {
   const { profile, updateProfile } = useAuth();

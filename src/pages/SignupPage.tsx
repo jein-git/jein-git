@@ -7,9 +7,12 @@ import {
   Lock,
   Phone,
   MapPin,
+  ChevronDown,
   AlertCircle,
   ChevronLeft,
 } from 'lucide-react';
+import { GoogleLoginButton } from '../components/ui/GoogleLoginButton';
+import { NOWON_DONGS } from '../data/nowonDongs';
 
 export function SignupPage() {
   const navigate = useNavigate();
@@ -19,7 +22,7 @@ export function SignupPage() {
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [dong, setDong] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const validate = (): string | null => {
@@ -41,14 +44,13 @@ export function SignupPage() {
       return;
     }
 
-    // 약관 동의 페이지로 폼 데이터 전달
     navigate('/terms-agreement', {
       state: {
         name: name.trim(),
         email: email.trim(),
         password,
         phone: phone.trim(),
-        address: address.trim(),
+        address: dong ? `노원구 ${dong}` : '',
       },
     });
   };
@@ -187,19 +189,27 @@ export function SignupPage() {
             </div>
           </div>
 
-          {/* 거주 지역 */}
+          {/* 거주 동 — 노원구 고정 + 드롭다운 */}
           <div>
-            <label className="label-text">거주 지역</label>
-            <div className="relative">
-              <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-muted" />
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="예: 서울시 마포구 망원동"
-                className="input-field pl-12"
-                autoComplete="street-address"
-              />
+            <label className="label-text">거주 동</label>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-primary-light border-2 border-primary rounded-lg px-3 min-h-[64px] whitespace-nowrap shrink-0">
+                <MapPin className="w-5 h-5 text-primary shrink-0" />
+                <span className="text-body-lg font-bold text-primary-dark">노원구</span>
+              </div>
+              <div className="relative flex-1">
+                <select
+                  value={dong}
+                  onChange={(e) => setDong(e.target.value)}
+                  className="input-field pr-10 appearance-none"
+                >
+                  <option value="">동 선택</option>
+                  {NOWON_DONGS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-muted pointer-events-none" />
+              </div>
             </div>
           </div>
 
@@ -211,6 +221,16 @@ export function SignupPage() {
             다음 단계
           </button>
         </form>
+
+        {/* 구분선 */}
+        <div className="flex items-center gap-3 my-6">
+          <div className="flex-1 h-px bg-[#e0e0e0]" />
+          <span className="text-sm text-ink-muted">또는</span>
+          <div className="flex-1 h-px bg-[#e0e0e0]" />
+        </div>
+
+        {/* 구글 가입 버튼 */}
+        <GoogleLoginButton />
 
         {/* 로그인 링크 */}
         <div className="mt-6 text-center pb-6">
