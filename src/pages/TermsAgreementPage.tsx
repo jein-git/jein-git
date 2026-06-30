@@ -70,7 +70,7 @@ const TERMS_CONTENT = {
 type ModalKey = keyof typeof TERMS_CONTENT;
 
 export function TermsAgreementPage() {
-  const { user, signUp, updateProfile } = useAuth();
+  const { user, signUp, updateProfile, saveUserConsents } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const signupData = location.state as SignupState | null;
@@ -108,18 +108,29 @@ export function TermsAgreementPage() {
     setLoading(true);
 
     if (user) {
-      // 구글 OAuth 등 이미 로그인된 유저: 약관만 프로필에 저장
+      // 구글 OAuth 등 이미 로그인된 유저: profiles + user_consents 에 저장
       const { error: updateError } = await updateProfile({
         terms_agreed: true,
         privacy_agreed: true,
         marketing_agreed: marketingAgreed,
         agreed_at: new Date().toISOString(),
       });
-      setLoading(false);
       if (updateError) {
+        setLoading(false);
         setError('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
         return;
       }
+
+      const { error: consentError } = await saveUserConsents({
+        userId: user.id,
+        marketingAgreed,
+      });
+      setLoading(false);
+      if (consentError) {
+        setError(consentError.message);
+        return;
+      }
+
       // AppRoutes가 terms 게이트 해제 후 phone/address 유무에 따라 자동 분기
       navigate('/');
     } else {

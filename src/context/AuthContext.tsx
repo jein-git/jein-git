@@ -3,11 +3,13 @@ import { supabase } from '../lib/supabase';
 import type { Profile } from '../lib/supabase';
 import type { User } from '@supabase/supabase-js';
 
+const TERMS_VERSION = '2026-06-30';
+
 type AuthContextType = {
   user: User | null;
   profile: Profile | null;
-  profileError: string | null;   // 프로필 조회 오류 메시지
-  profileLoading: boolean;       // 프로필 조회 진행 중 여부
+  profileError: string | null;
+  profileLoading: boolean;
   loading: boolean;
   signUp: (
     email: string,
@@ -23,6 +25,10 @@ type AuthContextType = {
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
   refreshProfile: () => Promise<void>;
+  saveUserConsents: (params: {
+    userId: string;
+    marketingAgreed: boolean;
+  }) => Promise<{ error: Error | null }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -62,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileError(null);
 
     try {
-      // role 컬럼을 명시적으로 포함해 조회
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -70,7 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
 
       if (error) {
-        // 오류를 콘솔에 상세 출력 + 상태로 저장
         console.error('[AuthContext] 프로필 조회 오류:', {
           message: error.message,
           code: error.code,
@@ -87,7 +91,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // 성공
       setProfile(data as Profile);
       setProfileError(null);
     } catch (e) {
@@ -99,7 +102,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    // 1단계: 초기 세션을 먼저 확인 (OAuth 콜백 포함)
     supabase.auth.getSession().then(({ data: { session } }) => {
       const currentUser = session?.user ?? null;
       setUser(currentUser);
@@ -109,9 +111,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    // 2단계: 이후 세션 변화 감지 (로그인·로그아웃·토큰 갱신)
-    // INITIAL_SESSION은 getSession()으로 이미 처리했으므로 건너뜀
-    // 주의: 콜백 내에서 Supabase 메서드를 직접 await하면 auth lock 교착상태 발생 가능
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
@@ -133,6 +132,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  // user_consents 테이블에 약관 동의 저장 (upsert, user_id 기준)
+  const saveUserConsents = async ({
+    userId,
+    marketingAgreed,
+  }: {
+    userId: string;
+    marketingAgreed: boolean;
+  }): Promise<{ error: Error | null }> => {
+    const { error } = await supabase
+      .from('user_consents')
+      .upsert(
+        {
+          user_id: userId,
+          terms_agreed: true,
+          privacy_agreed: true,
+          marketing_agreed: marketingAgreed,
+          terms_version: TERMS_VERSION,
+          privacy_version: TERMS_VERSION,
+          marketing_version: TERMS_VERSION,
+          agreed_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
+
+    if (error) {
+      console.error('[saveUserConsents] 약관 동의 저장 오류:', error.message);
+      return { error: new Error('약관 동의 저장 중 오류가 발생했습니다. 다시 시도해주세요.') };
+    }
+
+    return { error: null };
+  };
+
   const signUp = async (
     email: string,
     password: string,
@@ -143,13 +174,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     privacyAgreed?: boolean,
     marketingAgreed?: boolean,
   ) => {
-    // 필수 약관 미동의 시 저장 차단
+    // 필수 약관 미동의 시 진행 차단
     if (!termsAgreed || !privacyAgreed) {
       return { error: new Error('필수 약관에 동의해야 회원가입을 진행할 수 있습니다.') };
     }
 
     try {
-      // name을 메타데이터로 전달 → DB 트리거가 profiles 행 자동 생성 시 사용
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -159,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
-        // 트리거가 생성한 프로필 행에 추가 정보 업데이트
+        // profiles 테이블 업데이트
         await supabase.from('profiles').upsert(
           {
             id: data.user.id,
@@ -176,9 +206,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           { onConflict: 'id' }
         );
 
-        // upsert 완료 후 프로필을 명시적으로 재조회:
-        // onAuthStateChange의 setTimeout(0) fetchProfile이 upsert보다 먼저 실행되는
-        // 경쟁 상태를 방지해 phone/address가 있음에도 /profile-setup으로 이동하는 버그를 막음
+        // user_consents 테이블에 약관 동의 저장
+        const { error: consentError } = await saveUserConsents({
+          userId: data.user.id,
+          marketingAgreed: marketingAgreed ?? false,
+        });
+        if (consentError) return { error: consentError };
+
+        // onAuthStateChange의 fetchProfile 경쟁 상태 방지를 위해 명시적으로 재조회
         await fetchProfile(data.user.id);
       }
 
@@ -230,7 +265,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, profile, profileError, profileLoading, loading, signUp, signIn, signOut, updateProfile, refreshProfile }}
+      value={{ user, profile, profileError, profileLoading, loading, signUp, signIn, signOut, updateProfile, refreshProfile, saveUserConsents }}
     >
       {children}
     </AuthContext.Provider>
