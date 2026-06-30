@@ -134,8 +134,8 @@ export function TermsAgreementPage() {
       // AppRoutes가 terms 게이트 해제 후 phone/address 유무에 따라 자동 분기
       navigate('/');
     } else {
-      // 이메일 회원가입 플로우
-      const { error: authError } = await signUp(
+      // 이메일 회원가입 플로우: 약관 동의 정보는 options.data로 전달 → 트리거가 저장
+      const { error: authError, requiresEmailConfirmation } = await signUp(
         signupData!.email,
         signupData!.password,
         signupData!.name,
@@ -148,6 +148,10 @@ export function TermsAgreementPage() {
       setLoading(false);
       if (authError) {
         setError(mapAuthError(authError.message));
+        return;
+      }
+      if (requiresEmailConfirmation) {
+        navigate('/verify-email', { state: { email: signupData!.email }, replace: true });
         return;
       }
       navigate('/');

@@ -5,6 +5,8 @@ import type { User } from '@supabase/supabase-js';
 
 const TERMS_VERSION = '2026-06-30';
 
+type SignUpResult = { error: Error | null; requiresEmailConfirmation?: boolean };
+
 type AuthContextType = {
   user: User | null;
   profile: Profile | null;
@@ -20,7 +22,7 @@ type AuthContextType = {
     termsAgreed?: boolean,
     privacyAgreed?: boolean,
     marketingAgreed?: boolean,
-  ) => Promise<{ error: Error | null }>;
+  ) => Promise<SignUpResult>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: Error | null }>;
@@ -132,38 +134,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  // user_consents 테이블에 약관 동의 저장 (upsert, user_id 기준)
-  const saveUserConsents = async ({
-    userId,
-    marketingAgreed,
-  }: {
-    userId: string;
-    marketingAgreed: boolean;
-  }): Promise<{ error: Error | null }> => {
-    const { error } = await supabase
-      .from('user_consents')
-      .upsert(
-        {
-          user_id: userId,
-          terms_agreed: true,
-          privacy_agreed: true,
-          marketing_agreed: marketingAgreed,
-          terms_version: TERMS_VERSION,
-          privacy_version: TERMS_VERSION,
-          marketing_version: TERMS_VERSION,
-          agreed_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
-
-    if (error) {
-      console.error('[saveUserConsents] 약관 동의 저장 오류:', error.message);
-      return { error: new Error('약관 동의 저장 중 오류가 발생했습니다. 다시 시도해주세요.') };
-    }
-
-    return { error: null };
-  };
-
   const signUp = async (
     email: string,
     password: string,
@@ -173,47 +143,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     termsAgreed?: boolean,
     privacyAgreed?: boolean,
     marketingAgreed?: boolean,
-  ) => {
-    // 필수 약관 미동의 시 진행 차단
+  ): Promise<SignUpResult> => {
+    // 필수 약관 미동의 시 signUp 자체를 실행하지 않음
     if (!termsAgreed || !privacyAgreed) {
       return { error: new Error('필수 약관에 동의해야 회원가입을 진행할 수 있습니다.') };
     }
 
     try {
+      // 약관 동의 정보를 메타데이터로 전달 →
+      // DB 트리거(handle_new_user)가 profiles + user_consents에 자동 저장
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { data: { name } },
+        options: {
+          data: {
+            name,
+            phone: phone || null,
+            address: address || null,
+            terms_agreed: true,
+            privacy_agreed: true,
+            marketing_agreed: marketingAgreed ?? false,
+            terms_version: TERMS_VERSION,
+            privacy_version: TERMS_VERSION,
+            marketing_version: TERMS_VERSION,
+          },
+        },
       });
 
       if (error) throw error;
 
+      // session이 null → 이메일 인증 대기 중 (자동 로그인 안 됨)
+      if (data.user && !data.session) {
+        return { error: null, requiresEmailConfirmation: true };
+      }
+
+      // auto-confirm 환경: 바로 세션 발급 → 프로필 로드
       if (data.user) {
-        // profiles 테이블 업데이트
-        await supabase.from('profiles').upsert(
-          {
-            id: data.user.id,
-            name,
-            phone: phone || null,
-            address: address || null,
-            time_balance: 0,
-            terms_agreed: true,
-            privacy_agreed: true,
-            marketing_agreed: marketingAgreed ?? false,
-            agreed_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'id' }
-        );
-
-        // user_consents 테이블에 약관 동의 저장
-        const { error: consentError } = await saveUserConsents({
-          userId: data.user.id,
-          marketingAgreed: marketingAgreed ?? false,
-        });
-        if (consentError) return { error: consentError };
-
-        // onAuthStateChange의 fetchProfile 경쟁 상태 방지를 위해 명시적으로 재조회
         await fetchProfile(data.user.id);
       }
 
@@ -261,6 +226,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) {
       await fetchProfile(user.id);
     }
+  };
+
+  // Google OAuth 등 이미 로그인된 유저의 약관 동의 저장용
+  const saveUserConsents = async ({
+    userId,
+    marketingAgreed,
+  }: {
+    userId: string;
+    marketingAgreed: boolean;
+  }): Promise<{ error: Error | null }> => {
+    const { error } = await supabase
+      .from('user_consents')
+      .upsert(
+        {
+          user_id: userId,
+          terms_agreed: true,
+          privacy_agreed: true,
+          marketing_agreed: marketingAgreed,
+          terms_version: TERMS_VERSION,
+          privacy_version: TERMS_VERSION,
+          marketing_version: TERMS_VERSION,
+          agreed_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
+
+    if (error) {
+      console.error('[saveUserConsents] 약관 동의 저장 오류:', error.message);
+      return { error: new Error('약관 동의 저장 중 오류가 발생했습니다. 다시 시도해주세요.') };
+    }
+
+    return { error: null };
   };
 
   return (
