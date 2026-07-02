@@ -37,7 +37,7 @@ type CareMatch = {
   id: string;
   request_id: string;
   requester_id: string;
-  helper_id: string;
+  provider_id: string;
   status: string;
   completed_at: string | null;
   created_at: string;
@@ -233,12 +233,12 @@ export function MyMatchesPage() {
     const { data, error: dbError } = await supabase
       .from('care_matches')
       .select(`
-        id, request_id, requester_id, helper_id, status, completed_at, created_at,
+        id, request_id, requester_id, provider_id, status, completed_at, created_at,
         care_requests (
           title, category, location, requested_date, start_time, end_time, requested_hours
         )
       `)
-      .or(`helper_id.eq.${user.id},requester_id.eq.${user.id}`)
+      .or(`provider_id.eq.${user.id},requester_id.eq.${user.id}`)
       .order('created_at', { ascending: false });
 
     if (dbError) {
@@ -320,7 +320,7 @@ export function MyMatchesPage() {
   };
 
   // 내가 도움을 주는 매칭
-  const givingMatches = matches.filter((m) => m.helper_id === user?.id);
+  const givingMatches = matches.filter((m) => m.provider_id === user?.id);
   // 내가 도움을 받는 매칭
   const receivingMatches = matches.filter((m) => m.requester_id === user?.id);
 
