@@ -238,7 +238,7 @@ export function MyMatchesPage() {
           title, category, location, requested_date, start_time, end_time, requested_hours
         )
       `)
-      .or(` helper_id.eq.${user.id},requester_id.eq.${user.id}`)
+      .or(`helper_id.eq.${user.id},requester_id.eq.${user.id}`)
       .order('created_at', { ascending: false });
 
     if (dbError) {
