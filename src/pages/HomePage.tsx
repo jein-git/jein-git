@@ -195,7 +195,7 @@ export function HomePage() {
       </section>
 
       {/* 디버그 패널 */}
-      <section className="mx-6 mt-6 p-4 bg-gray-100 border border-gray-300 rounded-xl text-left space-y-1">
+      {(isAdmin || debug.dbRole === 'admin') && <section className="mx-6 mt-6 p-4 bg-gray-100 border border-gray-300 rounded-xl text-left space-y-1">
         <p className="text-caption font-bold text-gray-500 mb-2">[ 디버그 패널 ]</p>
         <p className="text-body text-gray-800"><span className="font-semibold">현재 로그인 이메일: </span>{debug.email ?? '(없음)'}</p>
         <p className="text-body text-gray-800"><span className="font-semibold">현재 로그인 user.id: </span>{debug.userId ?? '(없음)'}</p>
@@ -215,7 +215,7 @@ export function HomePage() {
         </p>
         {debug.fetchError && <p className="text-body text-red-600 font-semibold mt-2">오류: {debug.fetchError}</p>}
         {profileError && <p className="text-body text-red-600">AuthContext 오류: {profileError}</p>}
-      </section>
+      </section>}
     </div>
   );
 }
