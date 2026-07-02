@@ -78,7 +78,7 @@ export function BankbookPage() {
   const [error, setError] = useState<string | null>(null);
 
   // 현재 잔액: AuthContext의 profile에서 실시간 반영
-  const balance = profile?.time_balance ?? 0;
+  const balance = profile?.total_time ?? profile?.time_balance ?? 0;
 
   // 거래 내역 조회
   const fetchTransactions = useCallback(async () => {
