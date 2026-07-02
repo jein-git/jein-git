@@ -17,7 +17,7 @@ export function HomePage() {
   const { profile, signOut, profileError } = useAuth();
 
   // 잔액: Supabase profiles.time_balance 실제 값
-  const balance = profile?.time_balance ?? 0;
+  const balance = profile?.total_time ?? profile?.time_balance ?? 0;
   // 관리자 여부: public.profiles.role = 'admin'
   const isAdmin = profile?.role === 'admin';
 
